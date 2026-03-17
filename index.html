@@ -2,13 +2,19 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>飞机大战</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>飞机大战 - 增强版</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         body {
@@ -17,11 +23,21 @@
             align-items: center;
             min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
         }
 
         #gameContainer {
             position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         #gameCanvas {
@@ -30,6 +46,18 @@
             border: 3px solid #fff;
             border-radius: 10px;
             box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 480px) {
+            #gameCanvas {
+                width: 100%;
+                height: 100%;
+                border: none;
+                border-radius: 0;
+            }
         }
 
         #ui {
@@ -38,18 +66,67 @@
             left: 10px;
             right: 10px;
             color: #fff;
-            font-size: 20px;
+            font-size: 14px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
             z-index: 10;
             display: flex;
             justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 5px;
+            pointer-events: none;
         }
 
-        #ui div {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px 15px;
+        #ui > div {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
             border-radius: 5px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #comboDisplay {
+            color: #ffd700;
+            font-size: 16px;
+        }
+
+        #bossWarning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0000;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            display: none;
+            animation: blink 0.5s infinite;
+            z-index: 20;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #achievementPopup {
+            position: absolute;
+            top: 70px;
+            right: 10px;
+            color: #ffd700;
+            font-size: 14px;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            display: none;
+            z-index: 15;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
         #gameOver {
@@ -60,28 +137,41 @@
             text-align: center;
             color: #fff;
             display: none;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #fff;
+            max-width: 90%;
+            z-index: 100;
         }
 
         #gameOver h2 {
-            font-size: 48px;
-            margin-bottom: 20px;
+            font-size: 32px;
+            margin-bottom: 15px;
             text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
         }
 
         #gameOver p {
-            font-size: 24px;
-            margin-bottom: 30px;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        #gameOver .stats {
+            font-size: 14px;
+            margin-bottom: 20px;
+            color: #aaa;
         }
 
         #restartBtn {
-            padding: 15px 40px;
-            font-size: 20px;
+            padding: 12px 30px;
+            font-size: 18px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             border: none;
-            border-radius: 30px;
+            border-radius: 25px;
             cursor: pointer;
             transition: transform 0.3s, box-shadow 0.3s;
+            touch-action: manipulation;
         }
 
         #restartBtn:hover {
@@ -96,11 +186,17 @@
             transform: translate(-50%, -50%);
             text-align: center;
             color: #fff;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #fff;
+            max-width: 90%;
+            z-index: 100;
         }
 
         #startScreen h1 {
-            font-size: 60px;
-            margin-bottom: 30px;
+            font-size: 36px;
+            margin-bottom: 20px;
             text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7);
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
@@ -108,15 +204,23 @@
             background-clip: text;
         }
 
+        #startScreen .highScore {
+            font-size: 16px;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
         #startBtn {
-            padding: 20px 60px;
-            font-size: 24px;
+            padding: 15px 40px;
+            font-size: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             border: none;
-            border-radius: 30px;
+            border-radius: 25px;
             cursor: pointer;
             transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 15px;
+            touch-action: manipulation;
         }
 
         #startBtn:hover {
@@ -125,9 +229,138 @@
         }
 
         #instructions {
-            margin-top: 20px;
-            font-size: 16px;
+            font-size: 12px;
             color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        #instructions .key {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+
+        /* 移动端控制 */
+        .mobileControls {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+
+        @media (max-width: 768px) {
+            .mobileControls {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+            }
+        }
+
+        /* 虚拟摇杆 */
+        #joystickContainer {
+            width: 120px;
+            height: 120px;
+            position: relative;
+        }
+
+        #joystickBase {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            position: absolute;
+            touch-action: none;
+        }
+
+        #joystickHandle {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            touch-action: none;
+        }
+
+        /* 操作按钮 */
+        .actionButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .actionButton {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            transition: transform 0.1s, background 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .actionButton:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .actionButton .icon {
+            font-size: 24px;
+            pointer-events: none;
+        }
+
+        .actionButton .label {
+            font-size: 10px;
+            position: absolute;
+            bottom: 5px;
+            pointer-events: none;
+        }
+
+        /* 武器切换按钮 */
+        .weaponButtons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .weaponButton {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+        }
+
+        .weaponButton.active {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: #667eea;
+        }
+
+        .weaponButton:active {
+            transform: scale(0.9);
         }
     </style>
 </head>
@@ -137,40 +370,135 @@
         <div id="ui">
             <div>分数: <span id="score">0</span></div>
             <div>生命: <span id="lives">3</span></div>
+            <div>炸弹: <span id="bombs">3</span></div>
+            <div id="comboDisplay">连击: <span id="combo">0</span>x</div>
+            <div>最高分: <span id="highScore">0</span></div>
         </div>
+        <div id="bossWarning">⚠️ BOSS警告 ⚠️</div>
+        <div id="achievementPopup">🏆 成就解锁！</div>
         <div id="gameOver">
             <h2>游戏结束</h2>
             <p>最终分数: <span id="finalScore">0</span></p>
+            <div class="stats">
+                <p>最高连击: <span id="finalCombo">0</span></p>
+                <p>击杀敌机: <span id="finalKills">0</span></p>
+                <p>获得成就: <span id="finalAchievements">0</span></p>
+            </div>
             <button id="restartBtn">重新开始</button>
         </div>
         <div id="startScreen">
             <h1>飞机大战</h1>
+            <div class="highScore">最高分: <span id="startHighScore">0</span></div>
             <button id="startBtn">开始游戏</button>
             <p id="instructions">
-                ← → 或 A D 移动<br>
-                空格键 发射子弹
+                <span class="key">←</span><span class="key">→</span> 或 <span class="key">A</span><span class="key">D</span> 移动<br>
+                <span class="key">↑</span><span class="key">↓</span> 或 <span class="key">W</span><span class="key">S</span> 上下移动<br>
+                <span class="key">空格</span> 发射子弹 | <span class="key">B</span> 使用炸弹<br>
+                <span class="key">1</span> <span class="key">2</span> <span class="key">3</span> <span class="key">4</span> 切换武器
             </p>
+        </div>
+
+        <!-- 移动端控制 -->
+        <div class="mobileControls">
+            <div id="joystickContainer">
+                <div id="joystickBase">
+                    <div id="joystickHandle"></div>
+                </div>
+            </div>
+            <div class="actionButtons">
+                <div class="weaponButtons">
+                    <button class="weaponButton active" data-weapon="single">1</button>
+                    <button class="weaponButton" data-weapon="dual">2</button>
+                    <button class="weaponButton" data-weapon="triple">3</button>
+                    <button class="weaponButton" data-weapon="laser">4</button>
+                </div>
+                <button class="actionButton" id="bombBtn">
+                    <span class="icon">💣</span>
+                    <span class="label">炸弹</span>
+                </button>
+                <button class="actionButton" id="shootBtn">
+                    <span class="icon">🔫</span>
+                    <span class="label">发射</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        // 检测是否为移动设备
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // UI元素
         const scoreDisplay = document.getElementById('score');
         const livesDisplay = document.getElementById('lives');
-        const gameOverDiv = document.getElementById('gameOver');
+        const bombsDisplay = document.getElementById('bombs');
+        const comboDisplay = document.getElementById('combo');
+        const highScoreDisplay = document.getElementById('highScore');
         const finalScoreDisplay = document.getElementById('finalScore');
-        const restartBtn = document.getElementById('restartBtn');
-        const startScreen = document.getElementById('startScreen');
-        const startBtn = document.getElementById('startBtn');
+        const finalComboDisplay = document.getElementById('finalCombo');
+        const finalKillsDisplay = document.getElementById('finalKills');
+        const finalAchievementsDisplay = document.getElementById('finalAchievements');
+        const bossWarning = document.getElementById('bossWarning');
+        const achievementPopup = document.getElementById('achievementPopup');
+        const startHighScoreDisplay = document.getElementById('startHighScore');
+
+        // 移动端控制元素
+        const joystickBase = document.getElementById('joystickBase');
+        const joystickHandle = document.getElementById('joystickHandle');
+        const shootBtn = document.getElementById('shootBtn');
+        const bombBtn = document.getElementById('bombBtn');
+        const weaponButtons = document.querySelectorAll('.weaponButton');
+
+        // 虚拟摇杆状态
+        const joystick = {
+            active: false,
+            x: 0,
+            y: 0,
+            maxDistance: 60
+        };
 
         // 游戏状态
         let gameRunning = false;
         let score = 0;
         let lives = 3;
+        let bombs = 3;
+        let combo = 0;
+        let maxCombo = 0;
+        let kills = 0;
         let lastEnemySpawn = 0;
         let enemySpawnInterval = 1000;
-        let starOffset = 0;
+        let comboTimer = null;
+        let bossScoreThreshold = 200;
+        let bossSpawned = false;
+        let screenShake = 0;
+        let highScore = localStorage.getItem('planeWarHighScore') || 0;
+        let isShooting = false;
+
+        // 武器类型
+        const weaponTypes = {
+            single: { name: '单发', bullets: 1, spread: 0, interval: 200 },
+            dual: { name: '双发', bullets: 2, spread: 15, interval: 180 },
+            triple: { name: '散射', bullets: 3, spread: 30, interval: 220 },
+            laser: { name: '激光', bullets: 1, spread: 0, interval: 100, speed: 20 }
+        };
+        let currentWeapon = 'single';
+
+        // 成就系统
+        const achievements = {
+            firstKill: { name: '初次击杀', description: '击杀第1个敌机', unlocked: false },
+            combo10: { name: '连击大师', description: '达到10连击', unlocked: false },
+            combo50: { name: '连击之神', description: '达到50连击', unlocked: false },
+            bossKiller: { name: 'Boss杀手', description: '击杀1个Boss', unlocked: false },
+            score1000: { name: '千分达成', description: '达到1000分', unlocked: false },
+            score5000: { name: '高分达人', description: '达到5000分', unlocked: false },
+            noDamage: { name: '完美无伤', description: '连续击杀20个敌机不受伤', unlocked: false },
+            bombUser: { name: '爆炸专家', description: '使用炸弹清除10个以上敌机', unlocked: false }
+        };
+        let noDamageStreak = 0;
+        let unlockedAchievements = 0;
 
         // 音效系统
         let audioContext = null;
@@ -192,7 +520,7 @@
             oscillator.frequency.value = 800;
             oscillator.type = 'square';
 
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.06, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
 
             oscillator.start(audioContext.currentTime);
@@ -211,7 +539,7 @@
             oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
             oscillator.type = 'sawtooth';
 
-            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
 
             oscillator.start(audioContext.currentTime);
@@ -230,11 +558,30 @@
             oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.2);
             oscillator.type = 'sine';
 
-            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.12, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
 
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        function playBombSound() {
+            if (!audioContext) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(20, audioContext.currentTime + 0.8);
+            oscillator.type = 'sawtooth';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.8);
         }
 
         function playGameOverSound() {
@@ -249,11 +596,31 @@
             oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.8);
             oscillator.type = 'triangle';
 
-            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
 
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.8);
+        }
+
+        function playBossWarningSound() {
+            if (!audioContext) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+            oscillator.type = 'square';
+
+            gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.04, audioContext.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.08, audioContext.currentTime + 0.2);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.4);
         }
 
         // 玩家飞机
@@ -265,15 +632,18 @@
             speed: 6,
             bullets: [],
             bulletSpeed: 10,
-            bulletInterval: 200,
             lastBullet: 0,
-            canShoot: true
+            hasShield: false,
+            shieldTimer: 0,
+            invincible: false,
+            invincibleTimer: 0
         };
 
         // 敌机数组
         let enemies = [];
         let particles = [];
         let powerUps = [];
+        let boss = null;
 
         // 按键状态
         const keys = {};
@@ -289,12 +659,146 @@
             });
         }
 
+        // 显示成就
+        function showAchievement(achievementKey) {
+            const achievement = achievements[achievementKey];
+            if (!achievement || achievement.unlocked) return;
+
+            achievement.unlocked = true;
+            unlockedAchievements++;
+
+            achievementPopup.textContent = `🏆 ${achievement.name}`;
+            achievementPopup.style.display = 'block';
+
+            setTimeout(() => {
+                achievementPopup.style.display = 'none';
+            }, 2500);
+
+            playPowerUpSound();
+        }
+
+        // 更新连击
+        function updateCombo() {
+            combo++;
+            if (combo > maxCombo) {
+                maxCombo = combo;
+            }
+            comboDisplay.textContent = combo;
+            comboDisplay.style.transform = 'scale(1.3)';
+            setTimeout(() => {
+                comboDisplay.style.transform = 'scale(1)';
+            }, 100);
+
+            // 检查连击成就
+            if (combo >= 10) showAchievement('combo10');
+            if (combo >= 50) showAchievement('combo50');
+            if (combo >= 20) showAchievement('noDamage');
+
+            // 重置连击计时器
+            if (comboTimer) clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                combo = 0;
+                comboDisplay.textContent = 0;
+                noDamageStreak = 0;
+            }, 3000);
+        }
+
+        // 屏幕震动
+        function triggerScreenShake(intensity = 5) {
+            screenShake = intensity;
+        }
+
+        // 使用炸弹
+        function useBomb() {
+            if (bombs <= 0) return;
+
+            bombs--;
+            bombsDisplay.textContent = bombs;
+
+            const killCount = enemies.length;
+            enemies.forEach(enemy => {
+                createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '255, 107, 107');
+                score += enemy.points;
+            });
+            enemies = [];
+
+            if (boss) {
+                boss.health -= 50;
+                createExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, '255, 107, 107');
+                if (boss.health <= 0) {
+                    killBoss();
+                }
+            }
+
+            score += killCount * 10;
+            scoreDisplay.textContent = score;
+
+            triggerScreenShake(15);
+            playBombSound();
+
+            if (killCount >= 10) showAchievement('bombUser');
+        }
+
+        // 虚拟摇杆事件
+        function handleJoystickStart(e) {
+            e.preventDefault();
+            joystick.active = true;
+            handleJoystickMove(e);
+        }
+
+        function handleJoystickMove(e) {
+            if (!joystick.active) return;
+
+            e.preventDefault();
+
+            const touch = e.touches ? e.touches[0] : e;
+            const rect = joystickBase.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const maxDistance = joystick.maxDistance;
+
+            if (distance > maxDistance) {
+                const angle = Math.atan2(dy, dx);
+                dx = Math.cos(angle) * maxDistance;
+                dy = Math.sin(angle) * maxDistance;
+            }
+
+            joystick.x = dx / maxDistance;
+            joystick.y = dy / maxDistance;
+
+            joystickHandle.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        }
+
+        function handleJoystickEnd(e) {
+            e.preventDefault();
+            joystick.active = false;
+            joystick.x = 0;
+            joystick.y = 0;
+            joystickHandle.style.transform = 'translate(-50%, -50%)';
+        }
+
         // 绘制玩家飞机
         function drawPlayer() {
             ctx.save();
             ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
 
-            // 机身
+            if (player.hasShield) {
+                ctx.strokeStyle = `rgba(0, 255, 255, ${Math.sin(Date.now() / 100) * 0.5 + 0.5})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, 45, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            if (player.invincible) {
+                ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 50) * 0.5;
+            }
+
             ctx.fillStyle = '#4a90e2';
             ctx.beginPath();
             ctx.moveTo(0, -player.height / 2);
@@ -304,13 +808,11 @@
             ctx.closePath();
             ctx.fill();
 
-            // 驾驶舱
             ctx.fillStyle = '#87ceeb';
             ctx.beginPath();
             ctx.ellipse(0, -5, 8, 12, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // 引擎火焰
             ctx.fillStyle = '#ff6b6b';
             ctx.beginPath();
             ctx.moveTo(-8, player.height / 2);
@@ -327,11 +829,9 @@
             ctx.save();
             ctx.translate(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
 
-            // 不同类型敌机不同颜色
             const colors = ['#ff6b6b', '#feca57', '#ff9ff3'];
             ctx.fillStyle = colors[enemy.type - 1];
 
-            // 敌机形状
             ctx.beginPath();
             ctx.moveTo(0, enemy.height / 2);
             ctx.lineTo(enemy.width / 2, -enemy.height / 2);
@@ -340,7 +840,6 @@
             ctx.closePath();
             ctx.fill();
 
-            // 敌机眼睛
             ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(-10, -5, 5, 0, Math.PI * 2);
@@ -356,16 +855,72 @@
             ctx.restore();
         }
 
+        // 绘制Boss
+        function drawBoss() {
+            if (!boss) return;
+
+            ctx.save();
+            ctx.translate(boss.x + boss.width / 2, boss.y + boss.height / 2);
+
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.width / 2);
+            gradient.addColorStop(0, '#ff0000');
+            gradient.addColorStop(1, '#800000');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, boss.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(-20, -10, 15, 0, Math.PI * 2);
+            ctx.arc(20, -10, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(-20, -10, 5, 0, Math.PI * 2);
+            ctx.arc(20, -10, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            const healthBarWidth = 200;
+            const healthBarHeight = 10;
+            const healthBarX = boss.x + (boss.width - healthBarWidth) / 2;
+            const healthBarY = boss.y - 20;
+
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), healthBarHeight);
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${boss.health}/${boss.maxHealth}`, boss.x + boss.width / 2, healthBarY - 5);
+        }
+
         // 绘制子弹
         function drawBullets() {
             player.bullets.forEach(bullet => {
-                ctx.fillStyle = '#ffd700';
-                ctx.shadowColor = '#ffd700';
-                ctx.shadowBlur = 10;
-                ctx.beginPath();
-                ctx.arc(bullet.x, bullet.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
+                const weapon = weaponTypes[bullet.type];
+                if (weapon.name === '激光') {
+                    ctx.fillStyle = '#00ffff';
+                    ctx.shadowColor = '#00ffff';
+                    ctx.shadowBlur = 20;
+                    ctx.fillRect(bullet.x - 3, bullet.y, 6, 40);
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.fillStyle = '#ffd700';
+                    ctx.shadowColor = '#ffd700';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(bullet.x, bullet.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
             });
         }
 
@@ -391,11 +946,28 @@
         // 绘制道具
         function drawPowerUps() {
             powerUps.forEach(powerUp => {
-                ctx.fillStyle = powerUp.type === 'life' ? '#4ecdc4' : '#ffe66d';
-                ctx.shadowColor = powerUp.type === 'life' ? '#4ecdc4' : '#ffe66d';
+                const colors = {
+                    'life': '#4ecdc4',
+                    'power': '#ffe66d',
+                    'shield': '#87ceeb',
+                    'bomb': '#ff6b6b',
+                    'weapon': '#ff9ff3'
+                };
+
+                ctx.fillStyle = colors[powerUp.type] || '#fff';
+                ctx.shadowColor = colors[powerUp.type] || '#fff';
                 ctx.shadowBlur = 15;
-                ctx.font = '30px Arial';
-                ctx.fillText(powerUp.type === 'life' ? '❤️' : '⚡', powerUp.x, powerUp.y);
+
+                const icons = {
+                    'life': '❤️',
+                    'power': '⚡',
+                    'shield': '🛡️',
+                    'bomb': '💣',
+                    'weapon': '🔫'
+                };
+
+                ctx.font = '28px Arial';
+                ctx.fillText(icons[powerUp.type] || '❓', powerUp.x, powerUp.y);
                 ctx.shadowBlur = 0;
             });
         }
@@ -434,6 +1006,8 @@
 
         // 生成敌机
         function spawnEnemy() {
+            if (boss) return;
+
             const type = Math.floor(Math.random() * 3) + 1;
             const enemy = {
                 x: Math.random() * (canvas.width - 40),
@@ -448,15 +1022,109 @@
             enemies.push(enemy);
         }
 
+        // 生成Boss
+        function spawnBoss() {
+            if (boss) return;
+
+            bossWarning.style.display = 'block';
+            playBossWarningSound();
+
+            setTimeout(() => {
+                bossWarning.style.display = 'none';
+                boss = {
+                    x: canvas.width / 2 - 60,
+                    y: -150,
+                    width: 120,
+                    height: 100,
+                    speed: 2,
+                    health: 100,
+                    maxHealth: 100,
+                    moveDirection: 1,
+                    lastShot: 0,
+                    shootInterval: 1500
+                };
+            }, 3000);
+        }
+
+        // 击杀Boss
+        function killBoss() {
+            if (!boss) return;
+
+            createExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, '255, 0, 0');
+            score += 500;
+            scoreDisplay.textContent = score;
+            playExplosionSound();
+            triggerScreenShake(20);
+            showAchievement('bossKiller');
+
+            boss = null;
+            bossSpawned = false;
+            bossScoreThreshold += 300;
+        }
+
+        // 更新Boss
+        function updateBoss(timestamp) {
+            if (!boss) return;
+
+            boss.y += boss.speed;
+            if (boss.y > 50) {
+                boss.x += boss.speed * boss.moveDirection;
+                if (boss.x <= 10 || boss.x >= canvas.width - boss.width - 10) {
+                    boss.moveDirection *= -1;
+                }
+            }
+        }
+
         // 生成道具
         function spawnPowerUp(x, y) {
-            if (Math.random() < 0.3) {
+            if (Math.random() < 0.4) {
+                const types = ['life', 'power', 'shield', 'bomb', 'weapon'];
+                const type = types[Math.floor(Math.random() * types.length)];
+
                 powerUps.push({
                     x: x,
                     y: y,
-                    type: Math.random() < 0.5 ? 'life' : 'power',
+                    type: type,
                     speed: 2
                 });
+            }
+        }
+
+        // 切换武器
+        function switchWeapon(type) {
+            if (weaponTypes[type]) {
+                currentWeapon = type;
+                playPowerUpSound();
+
+                weaponButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.weapon === type);
+                });
+            }
+        }
+
+        // 发射子弹
+        function shoot(timestamp) {
+            if (!gameRunning) return;
+
+            const weapon = weaponTypes[currentWeapon];
+            if (timestamp - player.lastBullet > weapon.interval) {
+                const spreadAngle = (weapon.bullets - 1) * weapon.spread / 2;
+
+                for (let i = 0; i < weapon.bullets; i++) {
+                    const angle = spreadAngle - i * weapon.spread;
+                    const angleRad = angle * Math.PI / 180;
+
+                    player.bullets.push({
+                        x: player.x + player.width / 2,
+                        y: player.y,
+                        vx: Math.sin(angleRad) * player.bulletSpeed,
+                        vy: -(weapon.name === '激光' ? weapon.speed : player.bulletSpeed),
+                        type: currentWeapon
+                    });
+                }
+
+                player.lastBullet = timestamp;
+                playShootSound();
             }
         }
 
@@ -464,7 +1132,17 @@
         function update(timestamp) {
             if (!gameRunning) return;
 
-            // 更新玩家位置
+            if (screenShake > 0) {
+                screenShake *= 0.9;
+                if (screenShake < 0.5) screenShake = 0;
+            }
+
+            if (!bossSpawned && score >= bossScoreThreshold) {
+                bossSpawned = true;
+                spawnBoss();
+            }
+
+            // 玩家移动 - 键盘
             if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > 0) {
                 player.x -= player.speed;
             }
@@ -478,42 +1156,69 @@
                 player.y += player.speed;
             }
 
-            // 发射子弹
-            if (keys['Space'] && timestamp - player.lastBullet > player.bulletInterval) {
-                player.bullets.push({
-                    x: player.x + player.width / 2,
-                    y: player.y
-                });
-                player.lastBullet = timestamp;
-                playShootSound();
+            // 玩家移动 - 虚拟摇杆
+            if (joystick.active) {
+                player.x += joystick.x * player.speed;
+                player.y += joystick.y * player.speed;
+
+                player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+                player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+            }
+
+            // 更新护盾
+            if (player.hasShield) {
+                player.shieldTimer--;
+                if (player.shieldTimer <= 0) {
+                    player.hasShield = false;
+                }
+            }
+
+            // 更新无敌状态
+            if (player.invincible) {
+                player.invincibleTimer--;
+                if (player.invincibleTimer <= 0) {
+                    player.invincible = false;
+                }
+            }
+
+            // 发射子弹 - 键盘
+            if (keys['Space']) {
+                shoot(timestamp);
+            }
+
+            // 发射子弹 - 触摸按钮
+            if (isShooting) {
+                shoot(timestamp);
             }
 
             // 更新子弹位置
             player.bullets.forEach((bullet, index) => {
-                bullet.y -= player.bulletSpeed;
-                if (bullet.y < 0) {
+                bullet.x += bullet.vx || 0;
+                bullet.y += bullet.vy || -player.bulletSpeed;
+
+                if (bullet.y < -50 || bullet.y > canvas.height + 50) {
                     player.bullets.splice(index, 1);
                 }
             });
 
-            // 生成敌机
-            if (timestamp - lastEnemySpawn > enemySpawnInterval) {
+            updateBoss(timestamp);
+
+            if (!boss && timestamp - lastEnemySpawn > enemySpawnInterval) {
                 spawnEnemy();
                 lastEnemySpawn = timestamp;
                 enemySpawnInterval = Math.max(400, 1000 - score * 2);
             }
 
-            // 更新敌机
             enemies.forEach((enemy, enemyIndex) => {
                 enemy.y += enemy.speed;
 
-                // 敌机超出屏幕
                 if (enemy.y > canvas.height) {
                     enemies.splice(enemyIndex, 1);
+                    combo = 0;
+                    comboDisplay.textContent = 0;
                     return;
                 }
 
-                // 碰撞检测：子弹击中敌机
                 player.bullets.forEach((bullet, bulletIndex) => {
                     if (bullet.x > enemy.x &&
                         bullet.x < enemy.x + enemy.width &&
@@ -524,17 +1229,25 @@
 
                         if (enemy.health <= 0) {
                             createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '255, 107, 107');
-                            score += enemy.points;
+                            kills++;
+                            noDamageStreak++;
+                            updateCombo();
+                            score += enemy.points + combo * 2;
                             scoreDisplay.textContent = score;
                             playExplosionSound();
+                            triggerScreenShake(5);
                             spawnPowerUp(enemy.x, enemy.y);
                             enemies.splice(enemyIndex, 1);
+
+                            if (kills === 1) showAchievement('firstKill');
+                            if (score >= 1000) showAchievement('score1000');
+                            if (score >= 5000) showAchievement('score5000');
                         }
                     }
                 });
 
-                // 碰撞检测：敌机撞击玩家
-                if (player.x < enemy.x + enemy.width &&
+                if (!player.hasShield && !player.invincible &&
+                    player.x < enemy.x + enemy.width &&
                     player.x + player.width > enemy.x &&
                     player.y < enemy.y + enemy.height &&
                     player.y + player.height > enemy.y) {
@@ -543,6 +1256,13 @@
                     enemies.splice(enemyIndex, 1);
                     lives--;
                     livesDisplay.textContent = lives;
+                    combo = 0;
+                    noDamageStreak = 0;
+                    comboDisplay.textContent = 0;
+                    player.invincible = true;
+                    player.invincibleTimer = 60;
+
+                    triggerScreenShake(10);
 
                     if (lives <= 0) {
                         gameOver();
@@ -550,28 +1270,74 @@
                 }
             });
 
-            // 更新道具
+            if (boss) {
+                player.bullets.forEach((bullet, bulletIndex) => {
+                    if (bullet.x > boss.x &&
+                        bullet.x < boss.x + boss.width &&
+                        bullet.y > boss.y &&
+                        bullet.y < boss.y + boss.height) {
+                        boss.health--;
+                        player.bullets.splice(bulletIndex, 1);
+
+                        if (boss.health <= 0) {
+                            killBoss();
+                        }
+                    }
+                });
+
+                if (!player.hasShield && !player.invincible &&
+                    player.x < boss.x + boss.width &&
+                    player.x + player.width > boss.x &&
+                    player.y < boss.y + boss.height &&
+                    player.y + player.height > boss.y) {
+                    lives--;
+                    livesDisplay.textContent = lives;
+                    combo = 0;
+                    comboDisplay.textContent = 0;
+                    player.invincible = true;
+                    player.invincibleTimer = 60;
+                    triggerScreenShake(10);
+
+                    if (lives <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+
             powerUps.forEach((powerUp, index) => {
                 powerUp.y += powerUp.speed;
 
-                // 道具超出屏幕
                 if (powerUp.y > canvas.height) {
                     powerUps.splice(index, 1);
                     return;
                 }
 
-                // 玩家拾取道具
                 if (player.x < powerUp.x + 30 &&
                     player.x + player.width > powerUp.x &&
                     player.y < powerUp.y + 30 &&
                     player.y + player.height > powerUp.y) {
-                    if (powerUp.type === 'life') {
-                        lives++;
-                        livesDisplay.textContent = lives;
-                    } else if (powerUp.type === 'power') {
-                        player.bulletInterval = Math.max(100, player.bulletInterval - 20);
-                        score += 5;
-                        scoreDisplay.textContent = score;
+                    switch (powerUp.type) {
+                        case 'life':
+                            lives++;
+                            livesDisplay.textContent = lives;
+                            break;
+                        case 'power':
+                            score += 20;
+                            scoreDisplay.textContent = score;
+                            break;
+                        case 'shield':
+                            player.hasShield = true;
+                            player.shieldTimer = 300;
+                            break;
+                        case 'bomb':
+                            bombs++;
+                            bombsDisplay.textContent = bombs;
+                            break;
+                        case 'weapon':
+                            const weapons = ['single', 'dual', 'triple', 'laser'];
+                            const currentIndex = weapons.indexOf(currentWeapon);
+                            currentWeapon = weapons[Math.min(currentIndex + 1, weapons.length - 1)];
+                            break;
                     }
                     playPowerUpSound();
                     powerUps.splice(index, 1);
@@ -582,6 +1348,14 @@
 
         // 绘制游戏
         function draw() {
+            ctx.save();
+            if (screenShake > 0) {
+                ctx.translate(
+                    (Math.random() - 0.5) * screenShake * 2,
+                    (Math.random() - 0.5) * screenShake * 2
+                );
+            }
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             drawStars();
@@ -589,7 +1363,10 @@
             drawParticles();
             drawPlayer();
             enemies.forEach(enemy => drawEnemy(enemy));
+            drawBoss();
             drawBullets();
+
+            ctx.restore();
         }
 
         // 游戏循环
@@ -605,8 +1382,17 @@
         function gameOver() {
             gameRunning = false;
             playGameOverSound();
-            gameOverDiv.style.display = 'block';
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('planeWarHighScore', highScore);
+            }
+
             finalScoreDisplay.textContent = score;
+            finalComboDisplay.textContent = maxCombo;
+            finalKillsDisplay.textContent = kills;
+            finalAchievementsDisplay.textContent = unlockedAchievements;
+            document.getElementById('gameOver').style.display = 'block';
         }
 
         // 开始游戏
@@ -615,19 +1401,41 @@
             gameRunning = true;
             score = 0;
             lives = 3;
+            bombs = 3;
+            combo = 0;
+            maxCombo = 0;
+            kills = 0;
+            noDamageStreak = 0;
+            unlockedAchievements = 0;
+            currentWeapon = 'single';
+            bossScoreThreshold = 200;
+            bossSpawned = false;
+            boss = null;
+            screenShake = 0;
+
             player.x = canvas.width / 2 - 25;
             player.y = canvas.height - 80;
             player.bullets = [];
-            player.bulletInterval = 200;
+            player.hasShield = false;
+            player.invincible = false;
+
             enemies = [];
             particles = [];
             powerUps = [];
             enemySpawnInterval = 1000;
 
+            Object.keys(achievements).forEach(key => {
+                achievements[key].unlocked = false;
+            });
+
             scoreDisplay.textContent = score;
             livesDisplay.textContent = lives;
-            startScreen.style.display = 'none';
-            gameOverDiv.style.display = 'none';
+            bombsDisplay.textContent = bombs;
+            comboDisplay.textContent = 0;
+            highScoreDisplay.textContent = highScore;
+
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
 
             requestAnimationFrame(gameLoop);
         }
@@ -635,18 +1443,62 @@
         // 键盘事件
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
+
             if (e.code === 'Space') {
                 e.preventDefault();
             }
+
+            if (e.code === 'KeyB') {
+                useBomb();
+            }
+
+            if (e.code === 'Digit1') switchWeapon('single');
+            if (e.code === 'Digit2') switchWeapon('dual');
+            if (e.code === 'Digit3') switchWeapon('triple');
+            if (e.code === 'Digit4') switchWeapon('laser');
         });
 
         document.addEventListener('keyup', (e) => {
             keys[e.code] = false;
         });
 
+        // 虚拟摇杆事件
+        joystickBase.addEventListener('touchstart', handleJoystickStart);
+        joystickBase.addEventListener('touchmove', handleJoystickMove);
+        joystickBase.addEventListener('touchend', handleJoystickEnd);
+        joystickBase.addEventListener('mousedown', handleJoystickStart);
+        document.addEventListener('mousemove', handleJoystickMove);
+        document.addEventListener('mouseup', handleJoystickEnd);
+
+        // 移动端按钮事件
+        shootBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isShooting = true;
+        });
+        shootBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isShooting = false;
+        });
+
+        bombBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            useBomb();
+        });
+
+        weaponButtons.forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                switchWeapon(btn.dataset.weapon);
+            });
+        });
+
         // 按钮事件
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+
+        // 更新最高分显示
+        highScoreDisplay.textContent = highScore;
+        startHighScoreDisplay.textContent = highScore;
 
         // 初始绘制
         draw();
